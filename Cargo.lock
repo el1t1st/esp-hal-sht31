@@ -367,6 +367,7 @@ dependencies = [
  "esp-hal",
  "esp-println",
  "log",
+ "nstr",
  "sht31",
  "ssd1306",
 ]
@@ -656,6 +657,12 @@ name = "nb"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d5439c4ad607c3c23abf66de8c8bf57ba8adcd1f129e699851a6e43935d339d"
+
+[[package]]
+name = "nstr"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bb02d78238fdacbb75b28278378bbd526a57cb1b9825b19d6ebed5be8fa3f5e"
 
 [[package]]
 name = "num-traits"
