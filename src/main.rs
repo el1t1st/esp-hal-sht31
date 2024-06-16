@@ -2,7 +2,7 @@
 #![no_main]
 
 use embedded_graphics::{
-    mono_font::{iso_8859_1::FONT_10X20, MonoTextStyle},
+    mono_font::{ascii::FONT_6X10, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     text::{Text, TextStyle},
@@ -12,6 +12,7 @@ use esp_hal::{
     clock::ClockControl, delay::Delay, gpio::IO, i2c::I2C, peripherals::Peripherals,
     prelude::_fugit_ExtU32, prelude::*,
 };
+use log::info;
 use nstr::ToString;
 use sht31::{prelude::*, Accuracy, TemperatureUnit, SHT31};
 use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd1306};
@@ -33,6 +34,12 @@ fn main() -> ! {
 
     // let delay = DelayMs::new(&clocks);
     let delay = Delay::new(&clocks);
+
+    // buttons for setting the temperature
+    // buttons are input type
+    // immutable since we will only be reading
+    let button_plus = io.pins.gpio1.into_pull_up_input();
+    let button_minus = io.pins.gpio0.into_pull_up_input();
 
     // 4. Get data from the SHT31 sensor I2C
     // SCL gpio37 SDL clock
@@ -61,18 +68,28 @@ fn main() -> ! {
         .into_buffered_graphics_mode();
     display.init().unwrap();
 
-    let text_style = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
+    let text_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
 
-    Text::new("Starting measurements ... ", Point::new(10, 10), text_style)
+    Text::new("Hello Alex", Point::new(10, 10), text_style)
         .draw(&mut display)
         .unwrap();
 
     display.flush().unwrap();
 
     loop {
+        // check if the buttons are pressed
+        //
+        if button_plus.is_low().unwrap() {
+            log::info!("button plus is pressed!");
+        }
+        if button_minus.is_low().unwrap() {
+            log::info!("button minus is pressed!");
+        }
+
         // toggle the led every 2 secs and do a reading
         // led.toggle();
-        delay.delay_micros(5_000_000);
+        // delay.delay_micros(5_000_000);
+        //
         display.clear_buffer();
         display.flush().unwrap();
         let _ = led.set_high();
