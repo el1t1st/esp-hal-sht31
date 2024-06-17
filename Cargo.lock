@@ -361,6 +361,7 @@ dependencies = [
 name = "esp-hal-sht31"
 version = "0.1.0"
 dependencies = [
+ "critical-section",
  "embedded-graphics",
  "embedded-hal 0.2.7",
  "esp-backtrace",
@@ -370,6 +371,7 @@ dependencies = [
  "nstr",
  "sht31",
  "ssd1306",
+ "xtensa-lx",
 ]
 
 [[package]]

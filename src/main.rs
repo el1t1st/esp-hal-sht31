@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+use core::cell::{Cell, RefCell};
+use critical_section::Mutex;
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyle},
     pixelcolor::BinaryColor,
@@ -9,13 +11,23 @@ use embedded_graphics::{
 };
 use esp_backtrace as _;
 use esp_hal::{
-    clock::ClockControl, delay::Delay, gpio::IO, i2c::I2C, peripherals::Peripherals,
-    prelude::_fugit_ExtU32, prelude::*,
+    clock::ClockControl,
+    delay::Delay,
+    gpio::{Event, Gpio0, Gpio1, Input, PullUp, IO},
+    i2c::I2C,
+    interrupt,
+    peripherals::{Interrupt, Peripherals},
+    prelude::*,
 };
-use log::info;
+use esp_println::println;
+// use log::info;
 use nstr::ToString;
 use sht31::{prelude::*, Accuracy, TemperatureUnit, SHT31};
 use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd1306};
+
+static BUTTON_MIN: Mutex<RefCell<Option<Gpio0<Input<PullUp>>>>> = Mutex::new(RefCell::new(None));
+static BUTTON_MAX: Mutex<RefCell<Option<Gpio1<Input<PullUp>>>>> = Mutex::new(RefCell::new(None));
+// static TEMPERATURE: Mutex<Cell<f32>> = Mutex::new(Cell::new(14.00_f32));
 
 #[entry]
 fn main() -> ! {
@@ -38,8 +50,12 @@ fn main() -> ! {
     // buttons for setting the temperature
     // buttons are input type
     // immutable since we will only be reading
-    let button_plus = io.pins.gpio1.into_pull_up_input();
-    let button_minus = io.pins.gpio0.into_pull_up_input();
+    // let mut button_plus = io.pins.gpio1.into_pull_up_input();
+    let mut button_minus = io.pins.gpio0.into_pull_up_input();
+
+    button_minus.listen(Event::FallingEdge);
+    interrupt::enable(Interrupt::GPIO, interrupt::Priority::Priority3).unwrap();
+    critical_section::with(|cs| BUTTON_MIN.borrow_ref_mut(cs).replace(button_minus));
 
     // 4. Get data from the SHT31 sensor I2C
     // SCL gpio37 SDL clock
@@ -79,12 +95,12 @@ fn main() -> ! {
     loop {
         // check if the buttons are pressed
         //
-        if button_plus.is_low().unwrap() {
-            log::info!("button plus is pressed!");
-        }
-        if button_minus.is_low().unwrap() {
-            log::info!("button minus is pressed!");
-        }
+        // if button_plus.is_low().unwrap() {
+        //     log::info!("button plus is pressed!");
+        // }
+        // if button_minus.is_low().unwrap() {
+        //     log::info!("button minus is pressed!");
+        // }
 
         // toggle the led every 2 secs and do a reading
         // led.toggle();
@@ -118,5 +134,21 @@ fn main() -> ! {
         delay.delay_micros(5_000_000);
         // Write to led
         let _ = led.set_low();
+        log::info!("end of the loop");
     }
+}
+
+#[esp_hal::prelude::interrupt]
+fn GPIO() {
+    // Interrupt Service Routine Code
+    println!("Gpio interrupt launched!");
+    // log::info!("gpio0 interrupt");
+    // start critical_section
+    critical_section::with(|cs| {
+        BUTTON_MIN
+            .borrow_ref_mut(cs)
+            .as_mut()
+            .unwrap()
+            .clear_interrupt();
+    })
 }
